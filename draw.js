@@ -35,16 +35,31 @@ var pixel_to_math_range = function(start, end, pixels, scaler = 1) {
 };
 
 
-var iter_pop_func = function(lambda, x) {
+var iter_pop_func = function(lambda) {
   let f = function(lambda, x) {
     return lambda * x * (1 - x);
   };
-  let burn_count = 30;
-  let step = x;
-  for (i = 0; i < burn_count; ++i) {
+
+  // Burn the first n values to let the population settle.
+  let burn_count = 500;
+  let step = 0.5;  // Arbitrary initial pop where 0 < pop < 1
+  for (let i = 0; i < burn_count; ++i) {
     step = f(lambda, step)
   }
 
+  // Collect population iterations until the values repeat or some arbitrarily
+  // high number. Seems that some lambda values yield infinite population
+  // numbers.
+  let pops = new Set();
+  let pop = step;
+  for (let j = 0; j < 480; ++j) {
+    pop = f(lambda, pop);
+    if (pops.has(pop)) {
+      break;
+    }
+    pops.add(pop);
+  }
+  return pops;
 };
 
 const vert_px = 480;
@@ -55,7 +70,7 @@ const imag_scale = pixel_to_math_range(vert_top, vert_bottom, vert_px, -1);
 const horiz_px = 640;
 const horiz_right = 4;
 const horiz_left = 0;
-const real_scale = pixel_to_math_range(horiz_left, horiz_right, horiz_px);
+const horiz_scale = pixel_to_math_range(horiz_left, horiz_right, horiz_px);
 
 const draw_canvas = document.querySelector('#canvas');
 draw_canvas.width = horiz_px;
@@ -65,7 +80,20 @@ const img_data = ctx.createImageData(horiz_px, vert_px);
 
 const GREEN = [0, 255, 0, 255];
 
+// for (let x = 0; x < horiz_px; ++x) {
+//   set_pixel(img_data, x, 0, GREEN);
+// }
+ctx.fillStyle = "black";
+ctx.fillRect(0, 0, draw_canvas.width, draw_canvas.height);
+
+var pop;
+var lambda;
 for (let x = 0; x < horiz_px; ++x) {
-  set_pixel(img_data, x, y, GREEN);
+  lambda = horiz_scale(x);
+  pop = iter_pop_func(lambda);
+  pop.forEach(p => {
+    set_pixel(img_data, x, Math.round(p * vert_px), GREEN);
+  });
 }
+console.log("finished");
 ctx.putImageData(img_data, 0, 0);
