@@ -1,79 +1,5 @@
 "use strict";
 
-// The math stuff.
-const root1 = {real: 1, imag:0};
-const root2 = {real: -0.5, imag: Math.sqrt(3)/2};
-const root3 = {real: -0.5, imag: -(Math.sqrt(3)/2)};
-
-// JS has no complex number support but our needs here are pretty limited
-// so we can just create a struct and a single multiplication function to
-// do what we need.
-var comp_new = function(real_part, imag_part) {
-  return {real: real_part, imag: imag_part};
-};
-
-var comp_mult = function(c1, c2) {
-  // (a+bi)(c+di) = (ac-bd)+(ad+bc)i
-  return {real: c1.real * c2.real - c1.imag * c2.imag,
-          imag: c1.real * c2.imag + c1.imag * c2.real};
-};
-
-// comp_approx_equal returns a true if complex_num1 is sufficiently "close" to
-// complex_num2. We do this because: floats. Strictly, we should use the
-// pythagorean theorem to get the distance but it's faster to use a simple
-// bounding box and good enough for our purposes.
-var comp_approx_equal = function(complex_num1, complex_num2, epsilon = 0.001) {
-  return Math.abs(complex_num1.real - complex_num2.real) < epsilon &&
-         Math.abs(complex_num1.imag - complex_num2.imag) < epsilon;
-};
-
-var newtons_method = function(complex_num) {
-  const comp_squared = comp_mult(complex_num, complex_num);
-  const comp_cubed = comp_mult(comp_squared, complex_num)
-  let numerator = comp_new(comp_cubed.real - 1, comp_cubed.imag);
-  let denominator = comp_mult(comp_new(3, 0), comp_squared);
-  const conjugate = comp_new(denominator.real, -denominator.imag);
-
-  numerator = comp_mult(numerator, conjugate);
-  denominator = comp_mult(denominator, conjugate);
-  // JS implementation of floats is useful here since division by 0 will return
-  // NaN. The rest of the algorithm can handle that by essentially ignoring it.
-  // Eventually, it will be colored black.
-  return comp_mult(numerator, comp_new(1/denominator.real, 0));
-};
-
-var get_root_for_complex_point = function(comp_num) {
-  let previous;
-  let next = comp_num;
-  let i = 0;
-
-  for (; i < 30; ++i) {
-    previous = next;
-    let result = newtons_method(previous);
-    next = comp_new(previous.real - result.real, previous.imag - result.imag);
-    if (comp_approx_equal(next, previous)) {
-      return {result: next, iterations: i};
-    }
-  }
-
-  return {result: next, iterations: i};
-};
-
-const RED_C   = [255, 0,  0,  255];
-const GREEN_C = [0,  255, 0,  255];
-const BLUE_C  = [0,   0, 255, 255];
-const BLACK_C = [0,   0,  0,  255];
-
-var scale_color = function(color, scale) {
-  let new_color = [];
-  const divisor = Math.sqrt(scale);
-  for (let i = 0; i < 3; ++i) {
-    new_color[i] = color[i] / divisor;
-  }
-  new_color[3] = color[3];  // Alpha channel
-  return new_color;
-};
-
 // set_pixel colors a pixel for given x, y coordinates. ImageData (as returned
 // by ctx.createImageData()) is a one dimensional array of numbers that's 4
 // times longer than the total number of pixels. That is, it's a linear
@@ -109,48 +35,37 @@ var pixel_to_math_range = function(start, end, pixels, scaler = 1) {
 };
 
 
-// The canvas bitmap stuff.
+var iter_pop_func = function(lambda, x) {
+  let f = function(lambda, x) {
+    return lambda * x * (1 - x);
+  };
+  let burn_count = 30;
+  let step = x;
+  for (i = 0; i < burn_count; ++i) {
+    step = f(lambda, step)
+  }
+
+};
+
 const vert_px = 480;
-const vert_top = 1.5;
-const vert_bottom = -1.5;
+const vert_top = 4;
+const vert_bottom = 0;
 const imag_scale = pixel_to_math_range(vert_top, vert_bottom, vert_px, -1);
 
 const horiz_px = 640;
-const horiz_right = 2.0;
-const horiz_left = -2.0;
+const horiz_right = 4;
+const horiz_left = 0;
 const real_scale = pixel_to_math_range(horiz_left, horiz_right, horiz_px);
 
-console.time('canvas init');
 const draw_canvas = document.querySelector('#canvas');
 draw_canvas.width = horiz_px;
 draw_canvas.height = vert_px;
 const ctx = draw_canvas.getContext('2d');
 const img_data = ctx.createImageData(horiz_px, vert_px);
-console.timeEnd('canvas init');
 
-console.time('computation');
-for (let y = 0; y < vert_px; ++y) {
-  for (let x = 0; x < horiz_px; ++x) {
+const GREEN = [0, 255, 0, 255];
 
-    const comp_num = comp_new(real_scale(x), imag_scale(y));
-    const result = get_root_for_complex_point(comp_num);
-    const res = result.result;
-
-    // Leave the pixel black if we can't find a root after N iterations.
-    // Mathematically, this only happen for 0 + 0i (for which Newton's method
-    // leads us to divide by 0) but in practice, we can't iterate forever and
-    // floating point numbers only have so much resolution.
-    let color = BLACK_C;
-    if (comp_approx_equal(res, root1)) {
-      color = RED_C;
-    } else if (comp_approx_equal(res, root2)) {
-      color = GREEN_C;
-    } else if (comp_approx_equal(res, root3)) {
-      color = BLUE_C;
-    }
-    color = scale_color(color, result.iterations)
-    set_pixel(img_data, x, y, color);
-  }
+for (let x = 0; x < horiz_px; ++x) {
+  set_pixel(img_data, x, y, GREEN);
 }
-console.timeEnd('computation');
 ctx.putImageData(img_data, 0, 0);
