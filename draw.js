@@ -70,10 +70,13 @@ let set_canvas_background = function(image_data, color) {
     }
   }
 };
-const vert_px = 300;
-const vert_bottom = 0;
 
+// Output picture dimensions
+const vert_px = 300;
 const horiz_px = 600;
+
+const vert_bottom = 0;
+// Logical range for lambda values
 const horiz_right = 4;
 const horiz_left = 0;
 const horiz_scale = pixel_to_math_range(horiz_left, horiz_right, horiz_px);
@@ -88,9 +91,7 @@ const BLACK = [0, 0,   0, 255];
 const GREEN = [0, 255, 0, 255];
 
 
-// for (let x = 0; x < horiz_px; ++x) {
-//   set_pixel(img_data, x, 0, GREEN);
-// }
+
 set_canvas_background(img_data, BLACK);
 
 var pop;
@@ -103,4 +104,3 @@ for (let x = 0; x < horiz_px; ++x) {
   });
   ctx.putImageData(img_data, 0, 0);
 }
-console.log("finished");
