@@ -52,7 +52,7 @@ var iter_pop_func = function(lambda) {
   // numbers.
   let pops = new Set();
   let pop = step;
-  for (let j = 0; j < 480; ++j) {
+  for (let j = 0; j <= 100; ++j) {
     pop = f(lambda, pop);
     if (pops.has(pop)) {
       break;
@@ -62,12 +62,18 @@ var iter_pop_func = function(lambda) {
   return pops;
 };
 
-const vert_px = 480;
-const vert_top = 4;
-const vert_bottom = 0;
-const imag_scale = pixel_to_math_range(vert_top, vert_bottom, vert_px, -1);
 
-const horiz_px = 640;
+let set_canvas_background = function(image_data, color) {
+  for (let x = 0; x < image_data.width; ++x) {
+    for (let y = 0; y < image_data.height; ++y) {
+      set_pixel(image_data, x, y, color);
+    }
+  }
+};
+const vert_px = 300;
+const vert_bottom = 0;
+
+const horiz_px = 600;
 const horiz_right = 4;
 const horiz_left = 0;
 const horiz_scale = pixel_to_math_range(horiz_left, horiz_right, horiz_px);
@@ -78,13 +84,14 @@ draw_canvas.height = vert_px;
 const ctx = draw_canvas.getContext('2d');
 const img_data = ctx.createImageData(horiz_px, vert_px);
 
+const BLACK = [0, 0,   0, 255];
 const GREEN = [0, 255, 0, 255];
+
 
 // for (let x = 0; x < horiz_px; ++x) {
 //   set_pixel(img_data, x, 0, GREEN);
 // }
-ctx.fillStyle = "black";
-ctx.fillRect(0, 0, draw_canvas.width, draw_canvas.height);
+set_canvas_background(img_data, BLACK);
 
 var pop;
 var lambda;
@@ -92,8 +99,8 @@ for (let x = 0; x < horiz_px; ++x) {
   lambda = horiz_scale(x);
   pop = iter_pop_func(lambda);
   pop.forEach(p => {
-    set_pixel(img_data, x, Math.round(p * vert_px), GREEN);
+    set_pixel(img_data, x, vert_px - Math.round(p * vert_px), GREEN);
   });
+  ctx.putImageData(img_data, 0, 0);
 }
 console.log("finished");
-ctx.putImageData(img_data, 0, 0);
